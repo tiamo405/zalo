@@ -4,7 +4,8 @@ from torch.utils import data
 from torchvision import transforms
 import cv2
 import pandas as pd
-
+import os
+import json
 
 class ZaloDataset(data.Dataset):
     def __init__(self, opt):
@@ -12,11 +13,11 @@ class ZaloDataset(data.Dataset):
         self.load_height = opt.load_height
         self.load_width = opt.load_width
         self.replicate = opt.replicate
-        self.data_path = osp.join(opt.train_dir, str(opt.replicate))
+        self.data_path = os.path.join(opt.train_dir , "data")
         self.label_path = osp.join(opt.train_dir, "label.csv")
         self.transform = transforms.Compose([
             transforms.ToTensor(),
-            transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
+            transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))
         ])
 
         # load data list
@@ -24,11 +25,13 @@ class ZaloDataset(data.Dataset):
         labels = []
         df  = pd.read_csv(self.label_path)
         for i in range(len(df)):
-            img_name = df['fname'][i].split(".")[0]
+            img_name = df['fname'][i].split(".")[0] 
             label = df['liveness_score'][i]
-            for j in range(self.replicate) :
-                img_names.append(img_name + '_' + str(j))
-                labels.append(label)
+            # for j in range(self.replicate) :
+            for fname in os.listdir(os.path.join(self.data_path, img_name )) :
+                if "jpg" in fname:
+                    img_names.append(img_name + '_' + fname.split(".")[0])
+                    labels.append(label)
 
         self.img_names = img_names
         self.labels = labels
@@ -36,8 +39,13 @@ class ZaloDataset(data.Dataset):
     def __getitem__(self, index):
         img_name = self.img_names[index]
         label = self.labels[index]
-        img = cv2.imread(osp.join(self.data_path, (img_name+ ".jpg")))
-        img = cv2.resize(img, (self.load_width, self.load_height))
+        path = os.path.join(self.data_path, img_name.split("_")[0])
+        path_img = os.path.join(path, (img_name.split("_")[1]+".jpg"))
+        path_json = os.path.join(path, (img_name.split("_")[1]+".json"))
+        a = json.load(open(path_json))['bbox']
+        image = cv2.imread(path_img)
+        img = image[a[1]:a[3], a[0]:a[2]]
+        img = cv2.resize(img, (self.load_width,self.load_height))
         img = self.transform(img)
         
         result = {

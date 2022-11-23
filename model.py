@@ -1,55 +1,22 @@
 import torch
 import torch.nn as nn
-class Net_1(nn.Module):
-  def __init__(self):
-      super(Net_1, self).__init__()
-      # input 1 channel, output 6 channel, kernel size 3*3
-      self.conv2d_1 = nn.Conv2d(3, 32, 3, 1, "same")
-      self.conv2d_2 = nn.Conv2d(32, 64, 3, 1, "same")
-      self.conv2d_3 = nn.Conv2d(64, 128, 3, 1, "same")
-      self.conv2d_4 = nn.Conv2d(128, 256, 3, 1, "same")
-      self.conv2d_5 = nn.Conv2d(256, 256, 3, 1, "same")
+import torchvision.models as models
 
-      self.activation = nn.ReLU()
-      self.flat = nn.Flatten()
-      self.drop = nn.Dropout()
-      self.pooling = nn.MaxPool2d((2,2))
-      self.fcn_1 = nn.Linear(12544, 1000)
-      self.fcn_2 = nn.Linear(1000, 2) 
-      # self.sigmoid = nn.Sigmoid()
+class MobileNetv2(nn.Module):
+    def __init__(self) -> None:
+        super(MobileNetv2, self).__init__()
+        self.mobilenetv2 = models.mobilenet_v2(pretrained=True)
+        self.mobilenetv2.classifier[1] = nn.Linear(1280, 2)
+        self.softmax = nn.Sequential(nn.Softmax(dim=1))
 
-  def forward(self, x):
-      x = self.conv2d_1(x)
-      x = self.activation(x)
-      x = self.pooling(x)
+    def forward(self, x):
+        x = self.mobilenetv2(x)
+        return x
 
-      x = self.conv2d_2(x)
-      x = self.activation(x)
-      x = self.pooling(x)
-
-      x = self.conv2d_3(x)
-      x = self.activation(x)
-      x = self.pooling(x)
-      
-      x = self.conv2d_4(x)
-      x = self.activation(x)
-      x = self.pooling(x)
-
-      x = self.conv2d_5(x)
-      x = self.activation(x)
-      x = self.pooling(x)
-
-      
-      x = self.flat(x)
-      x = self.drop(x)
-      #print(x.shape)
-      x = self.fcn_1(x)
-      x = self.fcn_2(x)
-      return x
 if __name__ == "__main__":
-    device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
-    model = Net_1().to(device)
+    model = MobileNetv2().to(device)
     dummy = torch.ones((8, 3, 224, 224)).to(device)
     model.eval() #non-gradient
     print(model(dummy))
