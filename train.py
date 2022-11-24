@@ -11,7 +11,7 @@ from torchvision import datasets, models, transforms
 from torch.optim import lr_scheduler
 from datasets import ZaloDataset
 from utils.cropvideo import crop_train
-
+from model import MobileNetv2
 
 import copy
 def get_opt():
@@ -31,7 +31,8 @@ def get_opt():
     parser.add_argument('--save_dir', type=str, default='zalo/results')
     
     #checkpoints, train
-    parser.add_argument('--name_model', type= str, default= 'resnet50')
+    parser.add_argument('--name_model', type= str,choices=['resnet50', 'mobilenet_v2', \
+        'mobilenet_v3_small', 'mobilenet_v3_large'] , default= 'mobilenet_v2')
     parser.add_argument('--checkpoint_dir', type=str, default='zalo/checkpoints/')
     parser.add_argument("--gpu", type=str, default='1', help="choose gpu device.")
     parser.add_argument("--epochs", type=int, default=15)
@@ -51,45 +52,44 @@ def train(opt):
     # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
 
     # ----------------resnet50------------------------
-    model = torchvision.models.resnet50(pretrained=True)
-    num_ftrs = model.fc.in_features
-    # Here the size of each output sample is set to 2.
-    # Alternatively, it can be generalized to nn.Linear(num_ftrs, len(class_names)).
-    model.fc = nn.Linear(num_ftrs, 2)
+    if opt.name_model == 'resnet50' :
+        model = torchvision.models.resnet50(pretrained=True)
+        num_ftrs = model.fc.in_features
+        # Here the size of each output sample is set to 2.
+        # Alternatively, it can be generalized to nn.Linear(num_ftrs, len(class_names)).
+        model.fc = nn.Linear(num_ftrs, 2)
 
-    # Loss and optimizer
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
+        # Loss and optimizer
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=7, gamma=0.1)
 
     #-------------MOBILENET_V2------------
-    # model = MobileNetv2()
-    # print(model.__init__)
-    # # num_ftrs = model.Linear.in_features
-
-
-    # # print(model.summary())
-    # # Loss and optimizer
-    # criterion = nn.CrossEntropyLoss()
-    # optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
-    # scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  
+    elif opt.name_model =='mobilenet_v2' :
+        model = MobileNetv2()
+  
+        # Loss and optimizer
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  
      
     #-----------------------torchvision.models.mobilenet_v3_small
-    # model = torchvision.models.mobilenet_v3_small(pretrained = True)  
-    # model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, 2)
-    # criterion = nn.CrossEntropyLoss()
-    # optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
-    # scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  
+    elif opt.name_model == 'mobilenet_v3_small' :
+        model = torchvision.models.mobilenet_v3_small(pretrained = True)  
+        model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, 2)
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  
     #-----------------------
-    # model = torchvision.models.mobilenet_v3_large(pretrained=True) 
-    # # print(model)
-    # model.classifier.append (nn.Linear(model.classifier[-1].out_features, 2))
-    # print(model)
-    # # linear_model = nn.Linear(1000, 2,device= device)
-    # criterion = nn.CrossEntropyLoss()
-    # optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
-    # scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  
-    # trans = transforms.Compose([transforms.ToTensor()])
+    if opt.name_model == 'mobilenet_v3_large' :
+        model = torchvision.models.mobilenet_v3_large(pretrained=True) 
+        model.classifier.append (nn.Linear(model.classifier[-1].out_features, 2))
+        # print(model)
+        # linear_model = nn.Linear(1000, 2,device= device)
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  
+        # trans = transforms.Compose([transforms.ToTensor()])
     #-------------------Train the model----------------------------
     model = model.to(device)
     if not os.path.exists(os.path.join(opt.checkpoint_dir, opt.name_model)) :

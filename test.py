@@ -10,7 +10,7 @@ from torchvision import  transforms
 from utils.cropvideo import crop_test
 from utils.utils import load_checkpoint, save_csv, predict
 import cv2
-
+from model import MobileNetv2
 def get_opt():
     parser = argparse.ArgumentParser()
     parser.add_argument('--name', type=str, default='nam')
@@ -18,7 +18,7 @@ def get_opt():
     parser.add_argument('-j', '--workers', type=int, default=2)
     parser.add_argument('--load_height', type=int, default=360)
     parser.add_argument('--load_width', type=int, default=224)
-    parser.add_argument('--replicate', type=int, default=5)
+    parser.add_argument('--replicate', type=int, default=11)
     parser.add_argument('--shuffle', action='store_true')
     
     #
@@ -29,7 +29,8 @@ def get_opt():
     parser.add_argument('--public', type=str, default='public')
     
     #checkpoints, test
-    parser.add_argument('--name_model', type= str, default= 'mobilenet_v2')
+    parser.add_argument('--name_model', type= str,choices=['resnet50', 'mobilenet_v2', \
+        'mobilenet_v3_small', 'mobilenet_v3_large'] , default= 'mobilenet_v2')
     parser.add_argument('--checkpoint_dir', type=str, default='zalo/checkpoints/')
     parser.add_argument('--num_point', type= str, default= 'best_epoch.pth')
     parser.add_argument("--gpu", type=str, default=1, help="choose gpu device.")
@@ -51,19 +52,24 @@ def trans(img, opt) :
 def test(opt):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # --------------resnet50-----------
-    # model =  torchvision.models.resnet50(pretrained=False)
-    
-    # num_ftrs = model.fc.in_features
-    # model.fc = nn.Linear(num_ftrs, 2)
+    if opt.name_model == 'resnet50':
+        model =  torchvision.models.resnet50(pretrained=False)
+        
+        num_ftrs = model.fc.in_features
+        model.fc = nn.Linear(num_ftrs, 2)
     #--------------mobilenetv2------------
-    # model = MobileNetv2()
+    if opt.name_model == 'mobilenet_v2' :
+        model = MobileNetv2()
+
     #---------------------mobilenet_v3_small
-    model = torchvision.models.mobilenet_v3_small(pretrained = False)
-    model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, 2)
+    if opt.name_model == 'mobilenet_v3_small' :
+        model = torchvision.models.mobilenet_v3_small(pretrained = False)
+        model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, 2)
 
     #-----------mobilenet v3 lagre
-    # model = torchvision.models.mobilenet_v3_large(pretrained=False) 
-    # model.classifier.append (nn.Linear(model.classifier[-1].out_features, 2))
+    if opt.name_model == 'mobilenet_v3_large':
+        model = torchvision.models.mobilenet_v3_large(pretrained=False) 
+        model.classifier.append (nn.Linear(model.classifier[-1].out_features, 2))
 
 #-----------------------------------
     load_checkpoint(model, os.path.join(opt.checkpoint_dir,opt.name_model, opt.num_point))
