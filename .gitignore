@@ -163,6 +163,7 @@ cython_debug/
 .png
 .pth
 .zip
+.csv
 checkpoints/
 dataset/
 results/

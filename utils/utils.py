@@ -18,6 +18,8 @@ def predict(res):
     return 0.2
 
 def save_csv(x, y, opt):
+    if not os.path.exists(os.path.join(opt.save_dir, opt.public)) :
+        os.mkdir(os.path.join(opt.save_dir, opt.public))
     z= []
     for i in range (len(x)) :
         tmp=[]
@@ -34,10 +36,12 @@ def save_csv(x, y, opt):
         'fname' : x,
         'liveness_score': y
     })
-    i = 1
-    f = ''.join(os.listdir(opt.save_dir))
+    i = 0
+    f = ''.join(os.listdir(os.path.join(opt.save_dir, opt.public)))
     while str(i) in f :
         i+=1
-    os.mkdir(os.path.join(opt.save_dir, str(i)+ "_"+ opt.public+ "_"+ opt.name_model))
-    df.to_csv(os.path.join(opt.save_dir,str(i)+ "_"+ opt.public+ "_"+ opt.name_model, "predict.csv"), index=False)
+    
+    os.mkdir(os.path.join(opt.save_dir, opt.public, str(i)+ "_"+ opt.name_model))
+    df.to_csv(os.path.join(opt.save_dir, opt.public, str(i)+ "_"+ opt.name_model, "predict.csv"), index=False)
+    print(opt.public, str(i)+ "_"+ opt.name_model, "predict.csv")
     

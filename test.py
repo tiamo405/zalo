@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 import torch
 from torch import nn
-
+import json
 import torchvision
 from torchvision import  transforms
 from utils.cropvideo import crop_test
@@ -75,34 +75,64 @@ def test(opt):
     load_checkpoint(model, os.path.join(opt.checkpoint_dir,opt.name_model, opt.num_point))
     model = model.to(device)
     model.eval()
-    fnames = os.listdir(os.path.join(opt.test_dir, str(opt.replicate), opt.public))
-    fnames.sort()
     index = 0
     res = []
     x =[]
     y = []
-    for fname in fnames :
-        index +=1
-        path_img = os.path.join(opt.test_dir, str(opt.replicate),opt.public ,fname)
-        img = cv2.imread(path_img)
-        img = trans(img, opt)
-        img = img.to(device).unsqueeze(0)
-        output = model(img)
-        if index == opt.replicate :
-            print(abs(np.mean(output.cpu().detach().numpy())))
-            res.append(np.argmax(output.cpu().detach().numpy()))
-            x.append(fname.split("_")[0]+".mp4")
+    if opt.public == 'public' :
+        fnames = os.listdir(os.path.join(opt.test_dir, str(opt.replicate), opt.public))
+        fnames.sort()
+        
+        for fname in fnames :
+            index +=1
+            path_img = os.path.join(opt.test_dir, str(opt.replicate),opt.public ,fname)
+            img = cv2.imread(path_img)
+            img = trans(img, opt)
+            img = img.to(device).unsqueeze(0)
+            output = model(img)
+            if index == opt.replicate :
+                print(abs(np.mean(output.cpu().detach().numpy())))
+                res.append(np.argmax(output.cpu().detach().numpy()))
+                x.append(fname.split("_")[0]+".mp4")
 
-            y.append(predict(res))
-            # y.append(abs(np.mean(output.cpu().detach().numpy())))
-            # print(res)
-            res = []
-            index = 0
-        else :
-            res.append(np.argmax(output.cpu().detach().numpy()))
-    save_csv(x, y, opt)
-    
-    
+                y.append(predict(res))
+                res = []
+                index = 0
+            else :
+                res.append(np.argmax(output.cpu().detach().numpy()))
+        save_csv(x, y, opt)
+    else :
+        path = os.path.join(opt.test_dir, "test2")
+        fnames = os.listdir(path)
+        fnames.sort()
+        for fname in fnames :
+            path_imgs = os.path.join(path, fname)
+            print(path_imgs)
+            if len(os.listdir(path_imgs) ) > 0 :
+                for f_img in os.listdir(path_imgs) :
+                    if ".jpg" in f_img :
+                        index +=1
+                        path_img = os.path.join(path_imgs, f_img)
+                        a = json.load(open(os.path.join(path_imgs, f_img.split(".")[0] + ".json")))['bbox']
+                        image = cv2.imread(path_img)
+                        img = image[abs(a[1]): abs(a[3]), abs(a[0]): abs(a[2])]
+                        img = cv2.resize(img, (opt.load_width,opt.load_height))
+                        img = trans(img, opt).to(device).unsqueeze(0)
+                        output = model(img)
+                        if index == (len(os.listdir(path_imgs)) // 2 ):
+                            print(abs(np.mean(output.cpu().detach().numpy())))
+                            res.append(np.argmax(output.cpu().detach().numpy()))
+                            x.append(fname+".mp4")
+
+                            y.append(predict(res))
+                            res = []
+                            index = 0
+                        else : 
+                            res.append(np.argmax(output.cpu().detach().numpy()))
+            else :
+                x.append(fname + ".mp4")
+                y.append(0.1)
+        save_csv(x, y, opt)
 #-------------------------------------------
 
 if __name__ == '__main__':
@@ -111,11 +141,15 @@ if __name__ == '__main__':
         os.mkdir(opt.save_dir)
     if os.path.exists(opt.test_dir) == False:
         os.mkdir(opt.test_dir)
-    crop_test(opt= opt)
-    if len(os.listdir(os.path.join(opt.dataset_dir, opt.public, "videos"))) * opt.replicate == \
+   
+    if opt.public == 'public' : 
+        crop_test(opt = opt)
+        if len(os.listdir(os.path.join(opt.dataset_dir, opt.public, "videos"))) * opt.replicate == \
                     len(os.listdir(os.path.join(opt.test_dir, str(opt.replicate), opt.public))) : #vid * replicate=img crop
-        test(opt=opt)
-    else :print("crop image erorr")
+            test(opt)
+        else :print("crop image erorr")
+    else : test(opt)
+ 
     print("done")
 
     #python zalo/test.py --replicate 11 --name_model mobilenet_v3_small --public public_2
