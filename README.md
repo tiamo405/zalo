@@ -5,6 +5,7 @@
 - B1: git clone  https://github.com/tiamo405/zalo.git
 - B2. terminal
     ```sh
+    pip install -r requirements.txt
     mkdir zalo/dataset
     mkdir zalo/dataset/train
     mkdir zalo/dataset/test
@@ -43,3 +44,7 @@
         ```sh
         python zalo/test.py --public public2 --name_model resnet50
         ```  
+    - hoặc
+        ```sh
+        bash predict.sh
+        ```

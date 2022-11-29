@@ -163,7 +163,8 @@ cython_debug/
 .png
 .pth
 .zip
-.csv
-checkpoints/
 dataset/
+checkpoints/
+saved_models/
 results/
+.csv

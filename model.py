@@ -3,21 +3,21 @@ import torch.nn as nn
 import torchvision.models as models
 
 class MobileNetv2(nn.Module):
-    def __init__(self) -> None:
+    def __init__(self, type) -> None:
         super(MobileNetv2, self).__init__()
-        self.mobilenetv2 = models.mobilenet_v2(pretrained=True)
+        self.mobilenetv2 = models.mobilenet_v2(pretrained=type)
         self.mobilenetv2.classifier[1] = nn.Linear(1280, 2)
         self.softmax = nn.Sequential(nn.Softmax(dim=1))
-
     def forward(self, x):
         x = self.mobilenetv2(x)
+        x = self.softmax(x)
         return x
 
 if __name__ == "__main__":
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
     model = MobileNetv2().to(device)
-    dummy = torch.ones((8, 3, 224, 224)).to(device)
+    dummy = torch.ones((8, 3, 360, 480)).to(device)
     model.eval() #non-gradient
     print(model(dummy))
 

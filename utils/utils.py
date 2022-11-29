@@ -12,9 +12,9 @@ def predict(res):
         if i == 0 :
             dem+=1
     if dem > int(len(res) /2 ) :
-        # return 1 - dem / len(res)
+        # return 0
         return 0.1
-    # return int(len(res) -dem) / len(res)
+    # return 1
     return 0.2
 
 def save_csv(x, y, opt):

@@ -19,9 +19,9 @@ def get_opt():
     parser.add_argument('--name', type=str, default='nam')
     parser.add_argument('--batch_size', type=int, default=32)
     parser.add_argument('-j', '--workers', type=int, default=2)
-    parser.add_argument('--load_height', type=int, default=360)
-    parser.add_argument('--load_width', type=int, default=224)
-    parser.add_argument('--replicate', type=int, default=5)
+    parser.add_argument('--load_height', type=int, default=480)
+    parser.add_argument('--load_width', type=int, default=360)
+    parser.add_argument('--replicate', type=int, default=11)
     parser.add_argument('--shuffle', action='store_true')
     
     #
@@ -32,11 +32,11 @@ def get_opt():
     
     #checkpoints, train
     parser.add_argument('--name_model', type= str,choices=['resnet50', 'mobilenet_v2', \
-        'mobilenet_v3_small', 'mobilenet_v3_large'] , default= 'mobilenet_v2')
-    parser.add_argument('--checkpoint_dir', type=str, default='zalo/checkpoints/')
+        'mobilenet_v3_small', 'mobilenet_v3_large', 'alexnet', 'convnext_tiny'] , default= 'resnet50')
+    parser.add_argument('--checkpoint_dir', type=str, default='zalo/saved_models/')
     parser.add_argument("--gpu", type=str, default='1', help="choose gpu device.")
-    parser.add_argument("--epochs", type=int, default=15)
-    parser.add_argument("--lr", type=float, default=0.005)
+    parser.add_argument("--epochs", type=int, default=5)
+    parser.add_argument("--lr", type=float, default=0.05)
 
     opt = parser.parse_args()
     return opt
@@ -70,7 +70,8 @@ def train(opt):
   
         # Loss and optimizer
         criterion = nn.CrossEntropyLoss()
-        optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
+        # optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
+        optimizer = torch.optim.Adam(model.parameters(),lr= opt.lr, betas=(0.9, 0.999))
         scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  
      
     #-----------------------torchvision.models.mobilenet_v3_small
@@ -79,18 +80,31 @@ def train(opt):
         model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, 2)
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
+        # optimizer = torch.optim.Adam(model.parameters(),lr= opt.lr, betas=(0.9, 0.999))
         scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  
-    #-----------------------
-    if opt.name_model == 'mobilenet_v3_large' :
+    #-----------------------mobilenet_v3_large
+    elif opt.name_model == 'mobilenet_v3_large' :
         model = torchvision.models.mobilenet_v3_large(pretrained=True) 
         model.classifier.append (nn.Linear(model.classifier[-1].out_features, 2))
         # print(model)
         # linear_model = nn.Linear(1000, 2,device= device)
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
+        # optimizer = torch.optim.Adam(lr= opt.lr, beta_1=0.9, beta_2=0.999)
         scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)  
         # trans = transforms.Compose([transforms.ToTensor()])
+       #---------------torchvision.models.alexnet 
+    elif opt.name_model =='alexnet' :
+        model = torchvision.models.alexnet(pretrain = True)
+        # model.classifier.append(nn.Linear(model.classifier[-1].out_features, 2))
+        model.classifier[-1] = nn.Linear(model.classifier[-1].in_features, 2)
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.SGD(model.parameters(), lr=opt.lr, momentum = 0.9)
+        scheduler = lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1) 
+    # ---------------
+     
     #-------------------Train the model----------------------------
+    print(model)
     model = model.to(device)
     if not os.path.exists(os.path.join(opt.checkpoint_dir, opt.name_model)) :
         os.mkdir(os.path.join(opt.checkpoint_dir, opt.name_model))
@@ -112,16 +126,20 @@ def train(opt):
                 optimizer.zero_grad()
                 with torch.set_grad_enabled(phase == 'train'):
                     outputs = model(input)
-                    # print(outputs.shape)
+                    # print(outputs)
                     _, preds = torch.max(outputs, 1)
+                    # print(preds)
                     loss = criterion(outputs, labels)
+                    # print(loss)
                     if phase == 'train':
                         loss.backward()
                         optimizer.step()
                 running_loss += loss.item() * input.size(0)
+                
                 running_corrects += torch.sum(preds == labels.data)
             if phase == 'train':
                 scheduler.step()
+            # print(running_loss)
             epoch_loss = running_loss / dataset_sizes[phase]
             epoch_acc = running_corrects.double() / dataset_sizes[phase]
             print(f'{phase} Loss: {epoch_loss:.4f} Acc: {epoch_acc:.4f}')
@@ -177,4 +195,4 @@ if __name__ == '__main__':
     }, os.path.join(opt.checkpoint_dir, opt.name_model, ("best_epoch"+".pth")))
 
     print("done")
-#python zalo/train.py --replicate 11  --name_model mobilenet_v3_smaill --epochs 5 --lr 0.01
+#python zalo/train.py --name_model mobilenet_v3_smaill --epochs 5 --lr 0.01
