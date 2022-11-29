@@ -1,3 +1,4 @@
+👋 Hi, I’m @tiamo405
 # Challenge.zalo.ai
 # Nautilus 
 ## Tham khảo code trên colab hoặc clone và làm theo hướng dẫn ở dưới
@@ -9,7 +10,7 @@
     mkdir zalo/dataset
     mkdir zalo/dataset/train
     mkdir zalo/dataset/test
-    mkdir zalo/checkpoints
+    mkdir zalo/saved_models
     ```
 - B3. Download data train, test
 
@@ -38,11 +39,11 @@
 - B6. Test
     - data public 1 :
         ```sh
-        python zalo/test.py --public public --name_model resnet50 --replicate 11
+        python zalo/predict.py --public public --name_model resnet50 --replicate 11
         ```
     - data public 2 :
         ```sh
-        python zalo/test.py --public public2 --name_model resnet50
+        python zalo/predict.py --public public2 --name_model resnet50
         ```  
     - hoặc
         ```sh
